@@ -2,7 +2,13 @@ import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import interferometer as inf
+import sys
+import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from interferometer.interferometer.main import Interferometer, Beamsplitter, triangle_decomposition, square_decomposition, random_unitary
+
 from abc import ABC, abstractmethod
 
 class Circuit(ABC):
@@ -18,10 +24,6 @@ class Circuit(ABC):
         pass
 
     @property
-    def loss(self):
-        return self._node._lossPerNode
-
-    @property
     def numPhaseShifters(self):
         return self._numPhaseShifters
 
@@ -29,14 +31,16 @@ class Circuit(ABC):
     def numCouplers(self):
         return self._numCouplers
 
-    @loss.setter
-    def loss(self, values: tuple):
-        self._node.loss = values
-
     @abstractmethod
     def setPhaseGaussianNoise(self, averageNoise, stdNoise):
         pass
+    
+    # This method set an equal loss to each node of the circuit. The loss can be set to the node or to the coupler.
+    def setUniformLoss(self, loss, lossUnity = "Node"):
+        for node in self.nodes:
+            node.loss = (loss, lossUnity)
 
+# To implement
 class ClementsCircuit(Circuit):
     def __init__(self, U_id):
         pass
@@ -69,7 +73,7 @@ class ReckCircuit(Circuit):
 
 class UGMZICircuit(Circuit):
     def __init__(self, U_id):
-        inf.Interferomete
+        pass
     @property
     def experimentalMatrix(self):
         pass

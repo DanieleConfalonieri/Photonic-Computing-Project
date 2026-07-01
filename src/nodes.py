@@ -2,6 +2,13 @@ import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import sys
+import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from interferometer.interferometer.main import Interferometer, Beamsplitter, triangle_decomposition, square_decomposition, random_unitary
+
 from abc import ABC, abstractmethod
 
 class Node(ABC):
@@ -9,12 +16,63 @@ class Node(ABC):
     @property
     @abstractmethod
     def loss(self):
-        return self._lossValue
-    
-    @loss.setter
-    @abstractmethod
-    def loss(self, lossTupla):
         pass
 
-    
+    # This method set the loss to the node or to the coupler. We check the second element of the tuple to do so.
+    @loss.setter
+    @abstractmethod
+    def loss(self, lossTupla: tuple):
+        pass
 
+class MZI(Node):
+    # MZI definition expoliting the Beamsplitter class from the interferometer package.
+    def __init__(self, mode1, mode2, theta, phi, lossTupla: tuple = (0.0, "Node")):
+        self.BS = Beamsplitter(mode1, mode2, theta, phi)
+        self.loss = lossTupla
+        self.transmission_matrix = np.exp(-self.BS.alpha) * [[np.exp(np.imag * phi) * np.cos(theta), -np.sin(theta)], 
+                                                             [np.exp(np.imag * phi) * np.sin(theta),  np.cos(theta)]]
+
+    @property
+    def loss(self):
+        return self.BS.alpha
+
+    @loss.setter
+    def loss(self, lossTupla: tuple):
+        if(lossTupla[1] == "Node"):
+            self.BS.alpha = lossTupla[0]
+        elif(lossTupla[1] == "Coupler"):
+            self.BS.alpha = 2*lossTupla[0]
+
+class SGMZI(Node):
+    # S_N definition according to the paper, section 3
+    def __init__(self, startMode, endMode, thetas, omegas, lossTupla: tuple = (0.0, "Node"), phi0 = 0.0):
+        self.loss = lossTupla
+        self.N = endMode - startMode + 1
+        T = self.mmi_transmission_matrix(self.N, phi0)
+        thetaMatrix = np.diag(np.exp(np.imag * thetas))
+        omegaMatrix = np.diag(np.exp(np.imag * omegas))
+        self.transmission_matrix = np.exp(-self.alpha) * T @ thetaMatrix @ T @ omegaMatrix
+
+    @property
+    def loss(self):
+        return self.alpha
+
+    @loss.setter
+    def loss(self, lossTupla: tuple):
+        if(lossTupla[1] == "Node"):
+            self.alpha = lossTupla[0]
+        elif(lossTupla[1] == "Coupler"):
+            self.alpha = 2*lossTupla[0]
+
+    # T_N definition according to the paper, section 3
+    def mmi_transmission_matrix(self, N, phi0 = 0.0):
+        T = np.zeros((N, N), dtype=complex)
+        for row in range(N):
+            for col in range(N):
+                if (N + row - col) % 2 == 0:
+                    phi = phi0 + np.pi + (np.pi/(4 *N))*(N + 1 - row - col)*(N - 1 + row + col)
+                else: 
+                    phi = phi0 + (np.pi/(4 *N))*(N + row - col)*(N - row + col)
+
+                T[row, col] = np.exp(np.imag * phi)
+        return T * (1/np.sqrt(N))
