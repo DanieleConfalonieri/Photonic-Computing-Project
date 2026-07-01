@@ -24,38 +24,54 @@ class Node(ABC):
     def loss(self, lossTupla: tuple):
         pass
 
+    @property
+    @abstractmethod
+    def transmission_matrix(self):
+        pass
+
+
 class MZI(Node):
     # MZI definition expoliting the Beamsplitter class from the interferometer package.
     def __init__(self, mode1, mode2, theta, phi, lossTupla: tuple = (0.0, "Node")):
-        self.BS = Beamsplitter(mode1, mode2, theta, phi)
+        self._BS = Beamsplitter(mode1, mode2, theta, phi)
         self.loss = lossTupla
-        self.transmission_matrix = np.exp(-self.BS.alpha) * [[np.exp(np.imag * phi) * np.cos(theta), -np.sin(theta)], 
-                                                             [np.exp(np.imag * phi) * np.sin(theta),  np.cos(theta)]]
 
     @property
     def loss(self):
-        return self.BS.alpha
+        return self._BS.alpha
 
     @loss.setter
     def loss(self, lossTupla: tuple):
         if(lossTupla[1] == "Node"):
-            self.BS.alpha = lossTupla[0]
+            self._BS.alpha = lossTupla[0]
         elif(lossTupla[1] == "Coupler"):
-            self.BS.alpha = 2*lossTupla[0]
+            self._BS.alpha = 2*lossTupla[0]
+
+    @property
+    def transmission_matrix(self):
+        phi = self._BS.phi
+        theta = self._BS.theta
+        return np.exp(-self._BS.alpha) * [[np.exp(np.imag * phi) * np.cos(theta), -np.sin(theta)], 
+                                          [np.exp(np.imag * phi) * np.sin(theta),  np.cos(theta)]]
+
 
 class SGMZI(Node):
     # S_N definition according to the paper, section 3
     def __init__(self, startMode, endMode, thetas, omegas, lossTupla: tuple = (0.0, "Node"), phi0 = 0.0):
         self.loss = lossTupla
-        self.N = endMode - startMode + 1
-        T = self.mmi_transmission_matrix(self.N, phi0)
-        thetaMatrix = np.diag(np.exp(np.imag * thetas))
-        omegaMatrix = np.diag(np.exp(np.imag * omegas))
-        self.transmission_matrix = np.exp(-self.alpha) * T @ thetaMatrix @ T @ omegaMatrix
+        self._endMode = endMode
+        self._startMode = startMode
+        self._thetas = thetas
+        self._omegas = omegas
+        self._phi0 = phi0
 
     @property
     def loss(self):
         return self.alpha
+    
+    @property
+    def N(self):
+        return self._endMode - self._startMode + 1
 
     @loss.setter
     def loss(self, lossTupla: tuple):
@@ -76,3 +92,10 @@ class SGMZI(Node):
 
                 T[row, col] = np.exp(np.imag * phi)
         return T * (1/np.sqrt(N))
+    
+    @property
+    def transmission_matrix(self):
+        T = self.mmi_transmission_matrix(self.N, self._phi0)
+        thetaMatrix = np.diag(np.exp(np.imag * self._thetas))
+        omegaMatrix = np.diag(np.exp(np.imag * self._omegas))
+        return np.exp(-self.alpha) * T @ thetaMatrix @ T @ omegaMatrix
