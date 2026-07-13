@@ -8,6 +8,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from interferometer.interferometer.main import Interferometer, Beamsplitter, triangle_decomposition, square_decomposition, random_unitary
+from nodes import MZI, SGMZI
 
 from abc import ABC, abstractmethod
 
@@ -30,10 +31,11 @@ class Circuit(ABC):
     @property
     def numCouplers(self):
         return self._numCouplers
-
-    @abstractmethod
+ 
     def setPhaseGaussianNoise(self, averageNoise, stdNoise):
-        pass
+        errors = np.random.normal(averageNoise, stdNoise, len(self._nodes) * 2)
+        for i, node in self._nodes:
+            node.setNoise(errors[2*i], errors[2*i + 1])
     
     # This method set an equal loss to each node of the circuit. The loss can be set to the node or to the coupler.
     def setUniformLoss(self, loss, lossUnity = "Node"):
@@ -43,37 +45,48 @@ class Circuit(ABC):
 # To implement
 class ClementsCircuit(Circuit):
     def __init__(self, U_id):
-        pass
+        self._U_id = U_id
+        self._N = U_id.shape[0]
+        self._I = square_decomposition(U_id)
+        self._nodes = {}
+        i = 0
+        for bs in self._I.BS_list:
+            self._nodes[i] = MZI(bs.mode1, bs.mode2, bs.theta, bs.phi)
+            i = i + 1
 
     @property
     def experimentalMatrix(self):
-        pass
+        return self._I.calculate_transformation()
 
     @property
     def fidelity(self):
-        pass
+        return np.square(np.abs(np.trace(self.experimentalMatrix.conj().T @ self._U_id)/ (np.sqrt(self._N * np.trace(self.experimentalMatrix.conj().T @ self.experimentalMatrix)))))
 
-    def setPhaseGaussianNoise(self, averageNoise, stdNoise):
-        pass
 
 class ReckCircuit(Circuit):
     def __init__(self, U_id):
-        pass
+        self._U_id = U_id
+        self._N = U_id.shape[0]
+        self._I = triangle_decomposition(U_id)
+        self._nodes = {}
+        i = 0
+        for bs in self._I.BS_list:
+            self._nodes[i] = MZI(bs.mode1, bs.mode2, bs.theta, bs.phi)
+            i = i + 1
 
     @property
     def experimentalMatrix(self):
-        pass
+        return self._I.calculate_transformation()
 
     @property
     def fidelity(self):
-        pass
+        return np.square(np.abs(np.trace(self.experimentalMatrix.conj().T @ self._U_id)/ (np.sqrt(self._N * np.trace(self.experimentalMatrix.conj().T @ self.experimentalMatrix)))))
 
-    def setPhaseGaussianNoise(self, averageNoise, stdNoise):
-        pass
 
 class UGMZICircuit(Circuit):
     def __init__(self, U_id):
         pass
+    
     @property
     def experimentalMatrix(self):
         pass
@@ -82,7 +95,7 @@ class UGMZICircuit(Circuit):
     def fidelity(self):
         pass
 
-    def setPhaseGaussianNoise(self, averageNoise, stdNoise):
+    def customUGMZIDecomposition(self,):
         pass
 
 class SingularValuesCircuit(Circuit):
@@ -95,7 +108,4 @@ class SingularValuesCircuit(Circuit):
 
     @property
     def fidelity(self):
-        pass
-
-    def setPhaseGaussianNoise(self, averageNoise, stdNoise):
         pass

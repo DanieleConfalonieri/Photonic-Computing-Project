@@ -29,6 +29,9 @@ class Node(ABC):
     def transmission_matrix(self):
         pass
 
+    @abstractmethod
+    def setNoise(self, val1, val2):
+        pass
 
 class MZI(Node):
     # MZI definition expoliting the Beamsplitter class from the interferometer package.
@@ -53,6 +56,10 @@ class MZI(Node):
         theta = self._BS.theta
         return np.exp(-self._BS.alpha) * [[np.exp(np.imag * phi) * np.cos(theta), -np.sin(theta)], 
                                           [np.exp(np.imag * phi) * np.sin(theta),  np.cos(theta)]]
+    
+    def setNoise(self, val1, val2):
+        self._BS.theta = self._BS.theta + val1
+        self._BS.phi = self._BS.phi + val2
 
 
 class SGMZI(Node):
@@ -99,3 +106,6 @@ class SGMZI(Node):
         thetaMatrix = np.diag(np.exp(np.imag * self._thetas))
         omegaMatrix = np.diag(np.exp(np.imag * self._omegas))
         return np.exp(-self.alpha) * T @ thetaMatrix @ T @ omegaMatrix
+    
+    def setNoise(self, val1, val2):
+        print("Phase noise is not implemented for SGMZI nodes yet.")
