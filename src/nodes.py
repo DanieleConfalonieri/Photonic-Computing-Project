@@ -87,22 +87,27 @@ class SGMZI(Node):
         elif(lossTupla[1] == "Coupler"):
             self.alpha = 2*lossTupla[0]
 
+    # Helper function to compute phis
+    @staticmethod
+    def compute_phi(N ,row, col, phi0 = 0.0):
+        if (N + row - col) % 2 == 0:
+            phi = phi0 + np.pi + (np.pi/(4 *N))*(N + 1 - row - col)*(N - 1 + row + col)
+        else: 
+            phi = phi0 + (np.pi/(4 *N))*(N + row - col)*(N - row + col)
+
     # T_N definition according to the paper, section 3
-    def mmi_transmission_matrix(self, N, phi0 = 0.0):
+    @staticmethod
+    def mmi_transmission_matrix(N, phi0 = 0.0):
         T = np.zeros((N, N), dtype=complex)
         for row in range(N):
             for col in range(N):
-                if (N + row - col) % 2 == 0:
-                    phi = phi0 + np.pi + (np.pi/(4 *N))*(N + 1 - row - col)*(N - 1 + row + col)
-                else: 
-                    phi = phi0 + (np.pi/(4 *N))*(N + row - col)*(N - row + col)
-
+                phi = SGMZI.compute_phi(N, row, col, phi0)
                 T[row, col] = np.exp(np.imag * phi)
         return T * (1/np.sqrt(N))
     
     @property
     def transmission_matrix(self):
-        T = self.mmi_transmission_matrix(self.N, self._phi0)
+        T = SGMZI.mmi_transmission_matrix(self.N, self._phi0)
         thetaMatrix = np.diag(np.exp(np.imag * self._thetas))
         omegaMatrix = np.diag(np.exp(np.imag * self._omegas))
         return np.exp(-self.alpha) * T @ thetaMatrix @ T @ omegaMatrix
