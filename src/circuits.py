@@ -82,13 +82,21 @@ class UGMZICircuit(Circuit):
         self._U_id = U_id
         self._N = U_id.shape[0]
         self._nodes = self.customUGMZIDecomposition(U_id)
-    
+
     @property
     def experimentalMatrix(self):
         res = np.eye(self._N, dtype=complex)
-        #for node in self._nodes:
-            # Extend the node's transmission matrix to the full size of the circuit
-            # res = res @ extended_matrix
+        
+        # We save the nodes in "circuit" order, so the first element of the list is S_1, the second is S_2, and so on.
+        # We multiply the matrices in reverse order to get the final transformation matrix.
+        for node in reversed(self._nodes):
+            n = node.N
+            extended_matrix = np.eye(self._N, dtype=complex)
+            # Insertion in the bottom right corner of the extended matrix, according to the dimensions of the SGMZI node.
+            extended_matrix[self._N - n :, self._N - n :] = node.transmission_matrix
+            res = res @ extended_matrix
+        return res
+    
 
     def customUGMZIDecomposition(self, U_id):
 
