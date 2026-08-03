@@ -29,5 +29,5 @@ envs/
 Thumbs.db
 
 *.lock
-data_burgers
-data_heat2d
+interferometer/*
+src/__pycache__/*
