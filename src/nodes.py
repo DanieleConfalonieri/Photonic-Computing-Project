@@ -54,8 +54,8 @@ class MZI(Node):
     def transmission_matrix(self):
         phi = self._BS.phi
         theta = self._BS.theta
-        return np.exp(-self._BS.alpha) * [[np.exp(np.imag * phi) * np.cos(theta), -np.sin(theta)], 
-                                          [np.exp(np.imag * phi) * np.sin(theta),  np.cos(theta)]]
+        return np.exp(-self._BS.alpha) * [[np.exp(1j * phi) * np.cos(theta), -np.sin(theta)], 
+                                          [np.exp(1j * phi) * np.sin(theta),  np.cos(theta)]]
     
     def setNoise(self, val1, val2):
         self._BS.theta = self._BS.theta + val1
@@ -65,6 +65,7 @@ class MZI(Node):
 class SGMZI(Node):
     # S_N definition according to the paper, section 3
     def __init__(self, startMode, endMode, thetas, omegas, lossTupla: tuple = (0.0, "Node"), phi0 = 0.0):
+        self.alpha = 0.0
         self.loss = lossTupla
         self._endMode = endMode
         self._startMode = startMode
@@ -94,6 +95,7 @@ class SGMZI(Node):
             phi = phi0 + np.pi + (np.pi/(4 *N))*(N + 1 - row - col)*(N - 1 + row + col)
         else: 
             phi = phi0 + (np.pi/(4 *N))*(N + row - col)*(N - row + col)
+        return phi
 
     # T_N definition according to the paper, section 3
     @staticmethod
@@ -101,16 +103,16 @@ class SGMZI(Node):
         T = np.zeros((N, N), dtype=complex)
         for row in range(N):
             for col in range(N):
-                phi = SGMZI.compute_phi(N, row, col, phi0)
-                T[row, col] = np.exp(np.imag * phi)
+                phi = SGMZI.compute_phi(N, row+1, col+1, phi0)
+                T[row, col] = np.exp(1j * phi)
         return T * (1/np.sqrt(N))
     
     @property
     def transmission_matrix(self):
         T = SGMZI.mmi_transmission_matrix(self.N, self._phi0)
-        thetaMatrix = np.diag(np.exp(np.imag * self._thetas))
-        omegaMatrix = np.diag(np.exp(np.imag * self._omegas))
-        return np.exp(-self.alpha) * T @ thetaMatrix @ T @ omegaMatrix
+        thetaMatrix = np.diag(np.exp(1j * self._thetas))
+        omegaMatrix = np.diag(np.exp(1j * self._omegas))
+        return np.exp(-self.alpha) * omegaMatrix @ T @ thetaMatrix @ T
     
     def setNoise(self, val1, val2):
         print("Phase noise is not implemented for SGMZI nodes yet.")
