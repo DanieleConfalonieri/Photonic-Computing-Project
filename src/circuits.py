@@ -115,18 +115,21 @@ class UGMZICircuit(Circuit):
 
         for n in range(self._N, 0, -1):
             # Extract the first column of U_n
-            u_1 = U[:, 0]
-            # Compute the Householder reflection and build a unique orthonormal matrix.
-            # The firts colomn of H (therefore U_n) is not exactly u1, but is that vector scaled by a complex number alpha (|alpha| = 1).
-            # To guarantee the property we are looking for, we apply a rescaling.
-            alpha, v, tau = sp.linalg.zlarfg(u_1)
-            # Compute Q_n^H @ U = Q_block_to_scale; remember that Q_n = H and H is hermitian
-            Q_block = sp.linalg.zlarf(v, tau, U) # <- compute the Householder reflection and apply it to U
-            # Scale the [1,1] element of Q_block to guarantee that the first column is exactly e1
-            # Rescale the result to guarantee the property we are looking for. We impose the condition to avoid numerical instabilities.
-            Q_block[0, 0] = 1.0 + 0.0j
-            Q_block[0, 1:] = 0.0 + 0.0j  
-            Q_block[1:, 0] = 0.0 + 0.0j
+            u_1 = U[:, 0].copy()
+            if n > 1:
+                # Compute the Householder reflection and build a unique orthonormal matrix.
+                # The firts colomn of H (therefore U_n) is not exactly u1, but is that vector scaled by a complex number alpha (|alpha| = 1).
+                # To guarantee the property we are looking for, we apply a rescaling.
+                alpha_out, v_out, tau = sp.linalg.lapack.zlarfg(len(u_1), u_1[0], u_1[1:])
+                v = np.concatenate(([1.0 + 0.0j], v_out)) # the lapack wrapper omits the first element, we add it back.
+                # Compute Q_n^H @ U = Q_block_to_scale; remember that Q_n = H and H is hermitian
+                work = np.zeros(n, dtype=complex) # work array for the lapack function
+                Q_block = sp.linalg.lapack.zlarf(v, tau, U, work) # <- compute the Householder reflection and apply it to U
+                # Scale the [1,1] element of Q_block to guarantee that the first column is exactly e1
+                # Rescale the result to guarantee the property we are looking for. We impose the condition to avoid numerical instabilities.
+                Q_block[0, 0] = 1.0 + 0.0j
+                Q_block[0, 1:] = 0.0 + 0.0j  
+                Q_block[1:, 0] = 0.0 + 0.0j
             # Extract SGMZI parameters
             # 1) Compute thetas from Q_tilde_n
             u1_real_positive = np.abs(u_1)

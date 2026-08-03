@@ -91,7 +91,7 @@ class SGMZI(Node):
     # Helper function to compute phis
     @staticmethod
     def compute_phi(N ,row, col, phi0 = 0.0):
-        if (N + row - col) % 2 == 0:
+        if (N + row - col) % 2 != 0:
             phi = phi0 + np.pi + (np.pi/(4 *N))*(N + 1 - row - col)*(N - 1 + row + col)
         else: 
             phi = phi0 + (np.pi/(4 *N))*(N + row - col)*(N - row + col)
