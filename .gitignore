@@ -1,4 +1,33 @@
-# My virtual enviroment
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
 
-photonic/
+# Ambienti Virtuali
+.venv/
+venv/
+ENV/
+env/
+envs/
 
+### Jupyter Notebook ###
+.ipynb_checkpoints
+*.swp
+
+### Tool di Gestione (uv, poetry, pip) ###
+.uv/
+.python-version
+*.toml
+*.lock
+
+### VS Code ###
+.vscode/
+
+.DS_Store
+Thumbs.db
+
+*.lock
+data_burgers
+data_heat2d
