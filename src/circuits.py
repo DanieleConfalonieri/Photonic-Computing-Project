@@ -106,46 +106,48 @@ class UGMZICircuit(Circuit):
         # - U is the recursion engine and starts as U = U_id
         # - Q_n is the SGMZI matrix that will be built starting from u_1, first column of U
         # - Q_block is the block matrix that has e1 as first row and column; the right bottom block will be the new U in the recursive step
-        # To build Q_n in a deterministic way and guarantee orthonormality, we use the Householder reflection. 
-        # Therefore we are never going to build explicitly Q_n; the function sp.linalg.larf applies it directly. Remember it is hermitian, so Q_n^H = Q_n^{-1} = Q_n.
+        # Q_n has to be built in a deterministic way and guarantee orthonormality: a theoretical solution is using the Householder reflection.
+        # Here, we use the fact that given the first column of U (2n - 1 free parameters), the SGMZI transmission matrix is uniquely determined!
 
         U = U_id.copy()
-
-        nodes = []
+        nodes = [] 
 
         for n in range(self._N, 0, -1):
-            # Extract the first column of U_n
             u_1 = U[:, 0].copy()
-            if n > 1:
-                # Compute the Householder reflection and build a unique orthonormal matrix.
-                # The firts colomn of H (therefore U_n) is not exactly u1, but is that vector scaled by a complex number alpha (|alpha| = 1).
-                # To guarantee the property we are looking for, we apply a rescaling.
-                alpha_out, v_out, tau = sp.linalg.lapack.zlarfg(len(u_1), u_1[0], u_1[1:])
-                v = np.concatenate(([1.0 + 0.0j], v_out)) # the lapack wrapper omits the first element, we add it back.
-                # Compute Q_n^H @ U = Q_block_to_scale; remember that Q_n = H and H is hermitian
-                work = np.zeros(n, dtype=complex) # work array for the lapack function
-                Q_block = sp.linalg.lapack.zlarf(v, tau, U, work) # <- compute the Householder reflection and apply it to U
-                # Scale the [1,1] element of Q_block to guarantee that the first column is exactly e1
-                # Rescale the result to guarantee the property we are looking for. We impose the condition to avoid numerical instabilities.
-                Q_block[0, 0] = 1.0 + 0.0j
-                Q_block[0, 1:] = 0.0 + 0.0j  
-                Q_block[1:, 0] = 0.0 + 0.0j
-            # Extract SGMZI parameters
-            # 1) Compute thetas from Q_tilde_n
-            u1_real_positive = np.abs(u_1)
-            thetas = self.computeThetas(u1_real_positive)
-            # 2) Compute omegas from Q_tilde_n
+            
+            # 1) Extracting MMI parameters
+            u1_magnitudes = np.abs(u_1)
+            thetas = self.computeThetas(u1_magnitudes)
+            
+            # 2) Computing Omegas to compensate the phase of the first column of U.
             q = [] 
             for r in range(n):
                 res = 0.0
                 for k in range(n): 
-                    res += np.exp(1j * thetas[k]) * np.exp(1j * (SGMZI.compute_phi(n, r+1, k+1)+SGMZI.compute_phi(n, k+1, 1)))
-                q.append(res*1/n)
-            omegas = np.angle(u_1) -  np.angle(q)
-            # Build the SGMZI and add to the nodes list
-            nodes.insert(0,SGMZI(0, n-1, thetas, omegas)) # <- insert at the beginning of the list to guarantee the order of the nodes
+                    res += np.exp(1j * thetas[k]) * np.exp(1j * (SGMZI.compute_phi(n, r+1, k+1) + SGMZI.compute_phi(n, k+1, 1)))
+                q.append(res/n)
+                
+            omegas = np.angle(u_1) - np.angle(q)
+            
+            # 3) Creation of the SGMZI node
+            sgmzi_node = SGMZI(0, n-1, thetas, omegas)
+            nodes.insert(0, sgmzi_node) 
+            
+            # 4) Recursive step: if n > 1, we compute the new U for the next iteration.
             if n > 1: 
-                U = Q_block[1:, 1:] # <- reduce the size of U_n for the next iteration
+                # Sn (Qn in our premises) is the SGMZI transmission matrix that we just built.
+                Sn = sgmzi_node.transmission_matrix
+                
+                # Compute Sn^H @ U = Q_block, where Q_block is the block matrix that has e1 as first row and column; the right bottom block will be the new U in the recursive step.
+                Q_block = Sn.conj().T @ U
+                
+                # We impose the first row and column of Q_block to be e1 to avoid numerical instabilities.
+                Q_block[0, 0] = 1.0 + 0.0j
+                Q_block[0, 1:] = 0.0 + 0.0j
+                Q_block[1:, 0] = 0.0 + 0.0j
+                
+                # Use the right bottom block in the next step.
+                U = Q_block[1:, 1:] 
 
         return nodes
             
