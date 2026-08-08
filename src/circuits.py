@@ -23,8 +23,24 @@ class Circuit(ABC):
 
     @property
     def fidelity(self):
-        return np.square(np.abs(np.trace(self.experimentalMatrix.conj().T @ self._U_id)/ (np.sqrt(self._N * np.trace(self.experimentalMatrix.conj().T @ self.experimentalMatrix)))))
-    
+        # We use the formula in the paper (13):
+        # F = |Tr(U^dag U_exp) / sqrt((Tr(U^dag U) * Tr(U_exp^dag U_exp))) | ^ 2
+        U = self._U_id
+        U_exp = self.experimentalMatrix
+        
+        trace_num = np.trace(U.conj().T @ U_exp)
+        
+        # We use np.real to avoid numerical issues with very small imaginary parts due to floating point errors.
+        trace_U_norm = np.real(np.trace(U.conj().T @ U))
+        trace_U_exp_norm = np.real(np.trace(U_exp.conj().T @ U_exp))
+        
+        den = np.sqrt(trace_U_norm * trace_U_exp_norm)
+        
+        # Preventing division by zero
+        if den < np.finfo(float).eps:
+            return 0.0
+            
+        return np.square(np.abs(trace_num) / den)
 
     @property
     def numPhaseShifters(self):
@@ -208,14 +224,23 @@ class UGMZICircuit(Circuit):
         if not result.success or result.cost > 1e-10:
             print(f"Warning (n={n}): Possible instability. Final LM cost: {result.cost:.2e}")
             
-        return np.append(result.x, 0.0)
-
+        return np.append(result.x, 0.0)        
 
 class SingularValuesCircuit(Circuit):
     def __init__(self, U_id):
-        pass
+        self._U_id = U_id
+        self._N = U_id.shape[0]
+        self._nodes = []
 
-    @property
-    def experimentalMatrix(self):
-        pass
+        # Extract the singular values from the diagonal of U_id
+        singular_values = np.diag(U_id)
+
+        for mode in range(self._N):
+            # We analize the direct transmission ([0,0] element of the MZI transmission matrix)
+            sigma = singular_values[mode]
+            theta = np.arccos(sigma)
+            phi = 0.0  # No phase shift needed for singular values
+
+            mzi = MZI(mode, mode+self._N, theta, phi)
+            self._nodes.append(mzi)
 

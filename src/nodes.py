@@ -54,8 +54,8 @@ class MZI(Node):
     def transmission_matrix(self):
         phi = self._BS.phi
         theta = self._BS.theta
-        return np.exp(-self._BS.alpha) * [[np.exp(1j * phi) * np.cos(theta), -np.sin(theta)], 
-                                          [np.exp(1j * phi) * np.sin(theta),  np.cos(theta)]]
+        return np.exp(-self._BS.alpha) * np.array([[np.exp(1j * phi) * np.cos(theta), -np.sin(theta)], 
+                                          [np.exp(1j * phi) * np.sin(theta),  np.cos(theta)]])
     
     def setNoise(self, val1, val2):
         self._BS.theta = self._BS.theta + val1
