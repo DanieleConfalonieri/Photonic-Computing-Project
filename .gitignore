@@ -4,6 +4,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+report.log
 
 # Ambienti Virtuali
 .venv/

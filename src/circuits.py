@@ -244,3 +244,47 @@ class SingularValuesCircuit(Circuit):
             mzi = MZI(mode, mode+self._N, theta, phi)
             self._nodes.append(mzi)
 
+    @property
+    def experimentalMatrix(self):
+        # The experimental matrix is a diagonal NxN
+        exp = np.eye(self._N, dtype=complex)
+
+        for mode, node in enumerate(self._nodes):
+            exp[mode, mode] = node.transmission_matrix[0, 0]  # Direct transmission
+
+        return exp
+
+class SVDCircuit(Circuit):
+    # unitary_circuit_class is one of the above classes (ClementsCircuit, ReckCircuit, UGMZICircuit) that implement the unitary decomposition.
+    def __init__(self, U_id, unitary_circuit_class):
+        self._U_id = U_id
+        self._N = U_id.shape[0]
+
+        # Perform SVD decomposition
+        U, S, Vh = np.linalg.svd(U_id)
+
+        # Global normalization: since our circuit is passive,
+        # we normalize the singular values between 0 and 1.
+        eps = np.finfo(float).eps # machine epsilon for float type
+        sigma_max = np.max(S)
+
+        if sigma_max > eps: 
+            S = S / sigma_max
+
+        # Safety clipping to ensure singular values are within [0, 1] even with numerical noise.
+        S = np.clip(S, 0.0, 1.0)
+
+        S_diag = np.diag(S)
+        self.U_circuit = unitary_circuit_class(U)
+        self.Sigma_circuit = SingularValuesCircuit(S_diag)
+        self.Vh_circuit = unitary_circuit_class(Vh)
+
+    @property
+    def experimentalMatrix(self):
+        # The light travels through Vh, then Sigma, then U
+        U_exp = self.U_circuit.experimentalMatrix
+        Sigma_exp = self.Sigma_circuit.experimentalMatrix
+        Vh_exp = self.Vh_circuit.experimentalMatrix
+
+        return U_exp @ Sigma_exp @ Vh_exp
+
