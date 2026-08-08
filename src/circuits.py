@@ -221,7 +221,7 @@ class UGMZICircuit(Circuit):
 
         result = least_squares(lm_residuals, best_pos, method='lm')
         
-        if not result.success or result.cost > 1e-10:
+        if not result.success or result.cost > 1e-6:
             print(f"Warning (n={n}): Possible instability. Final LM cost: {result.cost:.2e}")
             
         return np.append(result.x, 0.0)        
