@@ -1,1 +1,1 @@
-from interferometer.main import Interferometer, Beamsplitter, triangle_decomposition, square_decomposition, random_unitary
+from .main import Interferometer, Beamsplitter, triangle_decomposition, square_decomposition, random_unitary
