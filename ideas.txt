@@ -9,8 +9,11 @@
 
 - {"Ingegneria del Software" (incapsulazione, classi, OO) + Pull Request a Clements} 
 
-- Errore nel paper! 
+- Errore nel paper! (Loss potenza vs Loss Campo elettrico -> plot sbagliati loro per UGMZI)
 
 TODO: 
-- Benchmark loss -> fidelity
-- Benchmark su non-unitary transformation
+- (Benchmark loss -> fidelity) ✅ 
+- Benchmark phase // Dani 
+- Benchmark su non-unitary transformation // Cris 
+
+- Generare plot (run lunga)
