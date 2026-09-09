@@ -35,8 +35,11 @@ class Node(ABC):
 
 class MZI(Node):
     # MZI definition expoliting the Beamsplitter class from the interferometer package.
-    def __init__(self, mode1, mode2, theta, phi, lossTupla: tuple = (0.0, "Node")):
-        self._BS = Beamsplitter(mode1, mode2, theta, phi)
+    def __init__(self, mode1, mode2, theta, phi, lossTupla: tuple = (0.0, "Node"), bs_instance = None):
+        if bs_instance is not None:
+            self._BS = bs_instance
+        else:
+            self._BS = Beamsplitter(mode1, mode2, theta, phi)
         self.loss = lossTupla
 
     @property

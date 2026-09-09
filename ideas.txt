@@ -1,0 +1,16 @@
+- Idea dell'UGMZI! Perché non si può fare Restorability con Clements/Recks?!
+
+- Questione SVD -> i valori singolari vengono riscalati tra 0 e 1 -> se alcuni sono troppo alti, schiacciano i più piccoli sotto l'eps macchina. Inoltre
+                   se altri sono troppo vicini tra loro possono finire nello stesso "slot" a livello di precisione macchina (approfondire/ripassare).
+
+- Dita Decomposition (ripassare/formalizzare per presentazione)
+
+- Abbiamo inserito nel framework di Clements la parametrizzazione sulla loss
+
+- {"Ingegneria del Software" (incapsulazione, classi, OO) + Pull Request a Clements} 
+
+- Errore nel paper! 
+
+TODO: 
+- Benchmark loss -> fidelity
+- Benchmark su non-unitary transformation

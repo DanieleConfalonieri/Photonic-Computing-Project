@@ -52,12 +52,12 @@ class Circuit(ABC):
  
     def setPhaseGaussianNoise(self, averageNoise, stdNoise):
         errors = np.random.normal(averageNoise, stdNoise, len(self._nodes) * 2)
-        for i, node in self._nodes:
+        for i, node in enumerate(self._nodes):
             node.setNoise(errors[2*i], errors[2*i + 1])
     
     # This method set an equal loss to each node of the circuit. The loss can be set to the node or to the coupler.
     def setUniformLoss(self, loss, lossUnity = "Node"):
-        for node in self.nodes:
+        for node in self._nodes:
             node.loss = (loss, lossUnity)
 
 # To implement
@@ -66,11 +66,10 @@ class ClementsCircuit(Circuit):
         self._U_id = U_id
         self._N = U_id.shape[0]
         self._I = square_decomposition(U_id)
-        self._nodes = {}
+        self._nodes = []
         i = 0
         for bs in self._I.BS_list:
-            self._nodes[i] = MZI(bs.mode1, bs.mode2, bs.theta, bs.phi)
-            i = i + 1
+            self._nodes.append(MZI(bs.mode1, bs.mode2, bs.theta, bs.phi, bs_instance=bs))
 
     @property
     def experimentalMatrix(self):
@@ -82,11 +81,10 @@ class ReckCircuit(Circuit):
         self._U_id = U_id
         self._N = U_id.shape[0]
         self._I = triangle_decomposition(U_id)
-        self._nodes = {}
+        self._nodes = []
         i = 0
         for bs in self._I.BS_list:
-            self._nodes[i] = MZI(bs.mode1, bs.mode2, bs.theta, bs.phi)
-            i = i + 1
+            self._nodes.append(MZI(bs.mode1, bs.mode2, bs.theta, bs.phi, bs_instance=bs))
 
     @property
     def experimentalMatrix(self):
