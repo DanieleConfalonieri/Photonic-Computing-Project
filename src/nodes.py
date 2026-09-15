@@ -72,9 +72,13 @@ class SGMZI(Node):
         self.loss = lossTupla
         self._endMode = endMode
         self._startMode = startMode
-        self._thetas = thetas
-        self._omegas = omegas
+        self._thetas = np.asarray(thetas, dtype=float)
+        self._omegas = np.asarray(omegas, dtype=float)
         self._phi0 = phi0
+        self.thetaMatrix = np.diag(np.exp(1j * self._thetas))
+        self.omegaMatrix = np.diag(np.exp(1j * self._omegas))
+        self._thetaMatrix = self.thetaMatrix
+        self._omegaMatrix = self.omegaMatrix
 
     @property
     def loss(self):
@@ -113,9 +117,38 @@ class SGMZI(Node):
     @property
     def transmission_matrix(self):
         T = SGMZI.mmi_transmission_matrix(self.N, self._phi0)
-        thetaMatrix = np.diag(np.exp(1j * self._thetas))
-        omegaMatrix = np.diag(np.exp(1j * self._omegas))
-        return np.exp(-self.alpha) * omegaMatrix @ T @ thetaMatrix @ T
+        return np.exp(-self.alpha) * self.omegaMatrix @ T @ self.thetaMatrix @ T
     
-    def setNoise(self, val1, val2):
-        print("Phase noise is not implemented for SGMZI nodes yet.")
+    def setNoise(self, thetas_noise, omegas_noise):
+        thetas_noise = np.asarray(thetas_noise)
+        omegas_noise = np.asarray(omegas_noise)
+
+        # --- Gestione THE TAS ---
+        # Se passano una matrice 2D (di angoli), prendiamo la diagonale
+        if thetas_noise.ndim == 2:
+            thetas_noise = np.diag(thetas_noise)
+        
+        # Broadcasting 0D e Padding (N-1)
+        if thetas_noise.ndim == 0:
+            thetas_noise = np.full(self.N, thetas_noise)
+        elif len(thetas_noise) == self.N - 1:
+            thetas_noise = np.append(thetas_noise, 0.0)
+
+        # Aggiornamento additivo e wrapping tra -pi e pi (opzionale ma pulito)
+        self._thetas = (self._thetas + thetas_noise + np.pi) % (2 * np.pi) - np.pi
+        self.thetaMatrix = np.diag(np.exp(1j * self._thetas))
+
+
+        # --- Gestione OMEGAS ---
+        if omegas_noise.ndim == 2:
+            omegas_noise = np.diag(omegas_noise)
+            
+        if omegas_noise.ndim == 0:
+            omegas_noise = np.full(self.N, omegas_noise)
+
+        self._omegas = (self._omegas + omegas_noise + np.pi) % (2 * np.pi) - np.pi
+        self.omegaMatrix = np.diag(np.exp(1j * self._omegas))
+
+        # Allinea le variabili private se proprio ti servono altrove
+        self._thetaMatrix = self.thetaMatrix
+        self._omegaMatrix = self.omegaMatrix

@@ -111,6 +111,15 @@ class UGMZICircuit(Circuit):
             res = res @ extended_matrix
         return res
     
+    def setPhaseGaussianNoise(self, averageNoise, stdNoise):
+        for node in self._nodes:
+            n = node.N
+            thetas_noise = np.zeros(n)
+            if n > 1:
+                thetas_noise[:-1] = np.random.normal(averageNoise, stdNoise, n - 1)
+            omegas_noise = np.random.normal(averageNoise, stdNoise, n)
+            node.setNoise(thetas_noise, omegas_noise)
+
 
     def customUGMZIDecomposition(self, U_id):
 
